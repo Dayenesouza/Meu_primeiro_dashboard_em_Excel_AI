@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard — Dayene | Inteligência Artificial</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@9.5.1/build/index.umd.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#182230;font-family:Arial,Helvetica,sans-serif}
+.container{max-width:1200px;margin:auto;padding:28px}.hero{background:linear-gradient(135deg,#111827,#334155);color:#fff;border-radius:24px;padding:28px;box-shadow:0 12px 35px #11182722}
+h1{margin:0 0 8px;font-size:30px}.subtitle{opacity:.85}.info{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
+.info div{background:#ffffff15;border:1px solid #ffffff25;border-radius:12px;padding:13px}.info b{display:block;font-size:12px;opacity:.75;margin-bottom:5px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}.btn{border:0;border-radius:11px;padding:12px 16px;font-weight:700;cursor:pointer;background:#fff;color:#182230}.primary{background:#3b82f6;color:#fff}.file{display:none}
+.status{margin-top:14px;font-size:13px;background:#ffffff12;padding:10px;border-radius:9px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}.card,.panel{background:#fff;border:1px solid #e4e9f0;border-radius:18px;padding:20px;box-shadow:0 5px 18px #1118270b}
+.label{color:#667085;font-size:13px}.metric{font-size:28px;font-weight:800;margin-top:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.full{grid-column:1/-1}.panel h2{font-size:17px;margin:0 0 14px}.chart{height:320px}
+.tablewrap{overflow:auto;margin-top:16px}.tablewrap table{width:100%;border-collapse:collapse;background:#fff}.tablewrap th,.tablewrap td{padding:11px;border-bottom:1px solid #e7ebf0;text-align:right}.tablewrap th:first-child,.tablewrap td:first-child{text-align:left}
+@media(max-width:800px){.info,.cards,.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="container">
+<header class="hero">
+<h1>Dashboard de Despesas Pessoais</h1>
+<div class="subtitle">Análise financeira a partir de uma planilha Excel</div>
+<div class="info">
+<div><b>ALUNO</b>Dayene</div>
+<div><b>CURSO</b>Inteligência Artificial</div>
+<div><b>DATA</b>25/09/2026</div>
+</div>
+<div class="actions">
+<label class="btn primary" for="file">📥 Importar Excel</label>
+<input id="file" class="file" type="file" accept=".xlsx,.xls,.csv">
+<button class="btn" onclick="exportCSV()">Exportar CSV</button>
+<button class="btn" onclick="exportWord()">Exportar Word</button>
+<button class="btn" onclick="exportPDF()">Salvar/Exportar PDF</button>
+</div>
+<div class="status" id="status">Planilha de despesas carregada como exemplo.</div>
+</header>
+
+<section class="cards">
+<div class="card"><div class="label">Total anual</div><div class="metric" id="total">R$ 0,00</div></div>
+<div class="card"><div class="label">Média mensal</div><div class="metric" id="media">R$ 0,00</div></div>
+<div class="card"><div class="label">Maior gasto mensal</div><div class="metric" id="maior">R$ 0,00</div></div>
+</section>
+
+<section class="grid">
+<div class="panel full"><h2>Gastos por mês</h2><div class="chart"><canvas id="monthly"></canvas></div></div>
+<div class="panel"><h2>Total por categoria</h2><div class="chart"><canvas id="category"></canvas></div></div>
+<div class="panel"><h2>Composição das despesas</h2><div class="chart"><canvas id="pie"></canvas></div></div>
+</section>
+<div class="tablewrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+</div>
+
+<script>
+let headers = ["Mês", "Conta de Luz (R$)", "Conta de Água (R$)", "Plano de Saúde (R$)", "Academia (R$)"];
+let data = [{"Mês": "Janeiro", "Conta de Luz (R$)": 450, "Conta de Água (R$)": 212.5, "Plano de Saúde (R$)": 1050, "Academia (R$)": 250}, {"Mês": "Fevereiro", "Conta de Luz (R$)": 437.5, "Conta de Água (R$)": 205, "Plano de Saúde (R$)": 1050, "Academia (R$)": 250}, {"Mês": "Março", "Conta de Luz (R$)": 475, "Conta de Água (R$)": 220, "Plano de Saúde (R$)": 1050, "Academia (R$)": 250}, {"Mês": "Abril", "Conta de Luz (R$)": 462.5, "Conta de Água (R$)": 215, "Plano de Saúde (R$)": 1050, "Academia (R$)": 250}, {"Mês": "Maio", "Conta de Luz (R$)": 500, "Conta de Água (R$)": 225, "Plano de Saúde (R$)": 1087.5, "Academia (R$)": 250}, {"Mês": "Junho", "Conta de Luz (R$)": 525, "Conta de Água (R$)": 230, "Plano de Saúde (R$)": 1087.5, "Academia (R$)": 250}, {"Mês": "Julho", "Conta de Luz (R$)": 512.5, "Conta de Água (R$)": 222.5, "Plano de Saúde (R$)": 1087.5, "Academia (R$)": 275}, {"Mês": "Agosto", "Conta de Luz (R$)": 487.5, "Conta de Água (R$)": 217.5, "Plano de Saúde (R$)": 1087.5, "Academia (R$)": 275}, {"Mês": "Setembro", "Conta de Luz (R$)": 462.5, "Conta de Água (R$)": 210, "Plano de Saúde (R$)": 1125, "Academia (R$)": 275}, {"Mês": "Outubro", "Conta de Luz (R$)": 475, "Conta de Água (R$)": 215, "Plano de Saúde (R$)": 1125, "Academia (R$)": 275}, {"Mês": "Novembro", "Conta de Luz (R$)": 525, "Conta de Água (R$)": 227.5, "Plano de Saúde (R$)": 1125, "Academia (R$)": 275}, {"Mês": "Dezembro", "Conta de Luz (R$)": 575, "Conta de Água (R$)": 237.5, "Plano de Saúde (R$)": 1125, "Academia (R$)": 275}];
+let charts={};
+const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v)||0);
+function keys(){return headers.slice(1).filter(k=>data.some(r=>Number.isFinite(Number(r[k]))))}
+function totals(){return data.map(r=>keys().reduce((s,k)=>s+(Number(r[k])||0),0))}
+function render(){
+ const ks=keys(), ms=data.map(r=>r[headers[0]]), ts=totals(), total=ts.reduce((a,b)=>a+b,0);
+ document.getElementById('total').textContent=money(total);
+ document.getElementById('media').textContent=money(ts.length?total/ts.length:0);
+ document.getElementById('maior').textContent=money(Math.max(0,...ts));
+ Object.values(charts).forEach(c=>c.destroy());
+ charts.monthly=new Chart(document.getElementById('monthly'),{type:'line',data:{labels:ms,datasets:[{label:'Gastos mensais',data:ts,tension:.25}]},options:{responsive:true,maintainAspectRatio:false}});
+ const cats=ks.map(k=>data.reduce((s,r)=>s+(Number(r[k])||0),0));
+ charts.category=new Chart(document.getElementById('category'),{type:'bar',data:{labels:ks.map(k=>k.replace(' (R$)','')),datasets:[{label:'Total',data:cats}]},options:{responsive:true,maintainAspectRatio:false}});
+ charts.pie=new Chart(document.getElementById('pie'),{type:'doughnut',data:{labels:ks.map(k=>k.replace(' (R$)','')),datasets:[{data:cats}]},options:{responsive:true,maintainAspectRatio:false}});
+ document.querySelector('#tbl thead').innerHTML='<tr>'+headers.map(h=>'<th>'+h+'</th>').join('')+'</tr>';
+ document.querySelector('#tbl tbody').innerHTML=data.map(r=>'<tr>'+headers.map((h,i)=>'<td>'+(i?money(r[h]):String(r[h]))+'</td>').join('')+'</tr>').join('');
+}
+document.getElementById('file').addEventListener('change',e=>{
+ const f=e.target.files[0]; if(!f)return;
+ const reader=new FileReader();
+ reader.onload=ev=>{
+   const wb=XLSX.read(ev.target.result,{type:'array'}), sh=wb.Sheets[wb.SheetNames[0]];
+   const a=XLSX.utils.sheet_to_json(sh,{header:1,defval:''});
+   headers=a[0].map(String);
+   data=a.slice(1).filter(r=>r[0]!==''&&r[0]!==undefined).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]])));
+   document.getElementById('status').textContent='Arquivo importado: '+f.name;
+   render();
+ };
+ reader.readAsArrayBuffer(f);
+});
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function exportCSV(){
+ const csv=XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(data));
+ download(new Blob([csv],{type:'text/csv;charset=utf-8'}),'dashboard_dayene.csv');
+}
+async function exportWord(){
+ const {Document,Packer,Paragraph,Table,TableRow,TableCell}=docx;
+ const tableRows=[new TableRow({children:headers.map(h=>new TableCell({children:[new Paragraph(String(h))]}))})]
+ .concat(data.map(r=>new TableRow({children:headers.map((h,i)=>new TableCell({children:[new Paragraph(i?money(r[h]):String(r[h]))]}))})));
+ const doc=new Document({sections:[{children:[
+   new Paragraph({text:'Dashboard de Despesas Pessoais',heading:1}),
+   new Paragraph('Aluno: Dayene'),new Paragraph('Curso: Inteligência Artificial'),new Paragraph('Data: 25/09/2026'),
+   new Paragraph(''),new Table({rows:tableRows})
+ ]}]});
+ download(await Packer.toBlob(doc),'dashboard_dayene.docx');
+}
+function exportPDF(){
+ const {jsPDF}=window.jspdf, pdf=new jsPDF();
+ pdf.setFontSize(18);pdf.text('Dashboard de Despesas Pessoais',14,18);
+ pdf.setFontSize(10);pdf.text('Aluno: Dayene',14,27);pdf.text('Curso: Inteligência Artificial',14,33);pdf.text('Data: 25/09/2026',14,39);
+ pdf.autoTable({head:[headers],body:data.map(r=>headers.map((h,i)=>i?money(r[h]):String(r[h]))),startY:46,styles:{fontSize:8}});
+ pdf.save('dashboard_dayene.pdf');
+}
+render();
+</script>
+</body></html>
